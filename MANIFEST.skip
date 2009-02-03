@@ -1,0 +1,4 @@
+t/author_tests/pod-coverage.t
+t/author_tests/kwalitee.t
+t/author_tests/pod.t
+t/author_tests/manifest.t
