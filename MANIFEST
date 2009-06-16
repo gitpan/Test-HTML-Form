@@ -3,7 +3,6 @@ Makefile.PL
 MANIFEST
 README
 META.yml
-MANIFEST.skip
 t/00-load.t			   
 t/form_with_errors.html
 t/html.t

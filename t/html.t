@@ -9,11 +9,11 @@ use Test::HTML::Form;
 
 my $filename = 't/form_with_errors.html';
 
-title_ok($filename,qr/inzerce zdarma Praha/,'title matches');
+title_matches($filename,qr/inzerce zdarma Praha/,'title matches');
 
 no_title($filename,'test site','no english title');
 
-tag_ok($filename,
+tag_matches($filename,
        'p',
        { class => 'formError',
 	 _content => qr/Omlouváme se, byly nalezeny chyby a Váš inzerát nemohl být odeslán/ },
@@ -26,24 +26,24 @@ no_tag($filename,
        'no unexpected english errors' );
 
 
-text_ok($filename,'Kulturní přehled, hudba, koncerty','found text : Kulturní přehled, hudba, koncerty'); # check text found in file
+text_matches($filename,'Kulturní přehled, hudba, koncerty','found text : Kulturní přehled, hudba, koncerty'); # check text found in file
 no_text($filename,'Concert','no text matching : Concert'); # check text found in file
 
-image_ok($filename,'/images/error.gif','matching image found image in HTML');
+image_matches($filename,'/images/error.gif','matching image found image in HTML');
 no_image($filename,'/images/hello_kitty.jpg','no matching image found in HTML');
 
-link_ok($filename,'/foo/select_foo.html?id=12345678','Found link in HTML');
+link_matches($filename,'/foo/select_foo.html?id=12345678','Found link in HTML');
 no_link($filename,'/foo/select_foo.html?id=87654321','Not found wrong link in HTML');
 
-form_field_value_ok($filename,'tit1e','test event', undef, 'have title');
+form_field_value_matches($filename,'tit1e','test event', undef, 'have title');
 
-form_field_value_ok($filename,'body','some test text',undef,"body field value");
+form_field_value_matches($filename,'body','some test text',undef,"body field value");
 
-form_select_field_ok($filename,{ field_name => 'day_posting_date', selected => 19, form_name => undef}, 'date matches select');
+form_select_field_matches($filename,{ field_name => 'day_posting_date', selected => 19, form_name => undef}, 'date matches select');
 
-form_checkbox_field_ok($filename,{ field_name => 'contact_method', selected => 1, form_name => undef}, 'contact method radio matches');
+form_checkbox_field_matches($filename,{ field_name => 'contact_method', selected => 1, form_name => undef}, 'contact method radio matches');
 
 my $word = Test::HTML::Form->extract_text({filename => $filename, pattern => 'hudba,\s(koncerty)'});
 
-is($word,'koncerty','extracted word from text ok');
+is($word,'koncerty','extracted word from text matches');
 

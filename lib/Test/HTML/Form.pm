@@ -7,7 +7,7 @@ Test::HTML::Form - HTML Testing and Value Extracting
 
 =head1 VERSION
 
-0.01
+0.02
 
 =head1 SYNOPSIS
 
@@ -17,11 +17,11 @@ my $filename = 't/form_with_errors.html';
 
 # test functions
 
-title_ok($filename,'Foo Bar','title matches');
+title_matches($filename,'Foo Bar','title matches');
 
 no_title($filename,'test site','no english title');
 
-tag_ok($filename,
+tag_matches($filename,
        'p',
        { class => 'formError',
 	 _content => 'There is an error in this form.' },
@@ -34,19 +34,19 @@ no_tag($filename,
        'no unexpected errors' );
 
 
-text_ok($filename,'koncerty','found text : koncerty'); # check text found in file
+text_matches($filename,'koncerty','found text : koncerty'); # check text found in file
 
 no_text($filename,'Concert','no text matching : Concert'); # check text found in file
 
-image_ok($filename,'/images/error.gif','matching image found image in HTML');
+image_matches($filename,'/images/error.gif','matching image found image in HTML');
 
-link_ok($filename,'/post/foo.html','Found link in HTML');
+link_matches($filename,'/post/foo.html','Found link in HTML');
 
-form_field_value_ok($filename,'category_id', 12345678, undef, 'category_id matches');
+form_field_value_matches($res,'category_id', 12345678, undef, 'category_id matches');
 
-form_select_field_ok($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
+form_select_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
-form_checkbox_field_ok($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
+form_checkbox_field_matches($res,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
 # Data extraction functions
 
@@ -60,6 +60,8 @@ Test HTML pages and forms, and extract values.
 
 Developed for and released with permission of Slando (http://www.slando.com)
 
+All test functions will take either a filename or an HTTP::Response compatible object (i.e. any object with a content method)
+
 =cut
 
 use Data::Dumper;
@@ -67,14 +69,14 @@ use HTML::TreeBuilder;
 
 use base qw( Exporter Test::Builder::Module);
 our @EXPORT = qw(
-  link_ok no_link
-  image_ok no_image
-  tag_ok no_tag
-  text_ok no_text
-  title_ok no_title
-  form_field_value_ok
-  form_select_field_ok
-  form_checkbox_field_ok
+  link_matches no_link
+  image_matches no_image
+  tag_matches no_tag
+  text_matches no_text
+  title_matches no_title
+  form_field_value_matches
+  form_select_field_matches
+  form_checkbox_field_matches
   );
 
 
@@ -84,26 +86,26 @@ my $CLASS = __PACKAGE__;
 my %parsed_files = ();
 my %parsed_file_forms = ();
 
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 
 =head1 FUNCTIONS
 
-=head2 image_ok
+=head2 image_matches
 
-image_ok($filename,$image_source,'matching image found image in HTML');
+image_matches($filename,$image_source,'matching image found image in HTML');
 
 =cut
 
-sub image_ok {
+sub image_matches {
   my ($filename,$link,$name) = (@_);
   local $Test::Builder::Level = 2;
-  return tag_ok($filename,'img',{ src => $link },$name);
+  return tag_matches($filename,'img',{ src => $link },$name);
 };
 
 
 =head2 no_image
 
-no_image($filename,$image_source,'no matching image found in HTML');
+no_image($res,$image_source,'no matching image found in HTML');
 
 =cut
 
@@ -114,21 +116,21 @@ sub no_image {
 };
 
 
-=head2 link_ok
+=head2 link_matches
 
-link_ok($filename,$link_destination,'Found link in HTML');
+link_matches($res,$link_destination,'Found link in HTML');
 
 =cut
 
-sub link_ok {
+sub link_matches {
   my ($filename,$link,$name) = (@_);
   local $Test::Builder::Level = 2;
-  return tag_ok($filename,'a',{ href => $link },$name);
+  return tag_matches($filename,'a',{ href => $link },$name);
 };
 
 =head2 no_link
 
-link_ok($filename,$link_destination,'Link not in HTML');
+link_matches($filename,$link_destination,'Link not in HTML');
 
 =cut
 
@@ -138,16 +140,16 @@ sub no_link {
   return no_tag($filename,'a',{ href => $link },$name);
 };
 
-=head2 title_ok
+=head2 title_matches
 
-title_ok($filename,'Foo bar home page','title matches');
+title_matches($filename,'Foo bar home page','title matches');
 
 =cut
 
-sub title_ok {
+sub title_matches {
   my ($filename,$title,$name) = @_;
   local $Test::Builder::Level = 2;
-  return tag_ok($filename,"title", { _content => $title } ,$name);
+  return tag_matches($filename,"title", { _content => $title } ,$name);
 };
 
 =head2 no_title
@@ -160,13 +162,13 @@ sub no_title {
   return no_tag($filename,'title', sub { shift->as_trimmed_text =~ m/$title/ },$name);
 };
 
-=head2 tag_ok
+=head2 tag_matches
 
-tag_ok($filename,'a',{ href => $link },$name); # check matching tag found in file
+tag_matches($filename,'a',{ href => $link },$name); # check matching tag found in file
 
 =cut
 
-sub tag_ok {
+sub tag_matches {
   my ($filename,$tag,$attr_ref,$name) = @_;
   my $count = _tag_count($filename, $tag, $attr_ref);
   my $tb = $CLASS->builder;
@@ -194,13 +196,13 @@ sub no_tag {
   return $ok;
 };
 
-=head2 text_ok
+=head2 text_matches
 
-text_ok($filename,$text,$name); # check text found in file
+text_matches($filename,$text,$name); # check text found in file
 
 =cut
 
-sub text_ok {
+sub text_matches {
   my ($filename,$text,$name) = @_;
   my $count = _count_text({filename => $filename, text => $text });
   my $tb = $CLASS->builder;
@@ -229,17 +231,17 @@ sub no_text {
 };
 
 
-=head2 form_field_value_ok
+=head2 form_field_value_matches
 
-form_field_value_ok($filename,$field_name, $field_value, $form_name, $description);
+form_field_value_matches($filename,$field_name, $field_value, $form_name, $description);
 
-form_field_value_ok($filename,$field_name, qr/some pattern/, $form_name, $description);
+form_field_value_matches($filename,$field_name, qr/some pattern/, $form_name, $description);
 
 field value argument can be a string (for exact matches) or a quoted regexp (for pattern matches)
 
 =cut
 
-sub form_field_value_ok {
+sub form_field_value_matches {
   my ($filename,$field_name, $field_value, $form_name, $description) = @_;
   my $form_fields = __PACKAGE__->get_form_values({ filename => $filename, form_name => $form_name });
   my $tb = $CLASS->builder;
@@ -253,15 +255,15 @@ sub form_field_value_ok {
   return $ok;
 };
 
-=head2 form_select_field_ok
+=head2 form_select_field_matches
 
-form_select_field_ok($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
+form_select_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
 selected field value can be string or quoted regexp
 
 =cut
 
-sub form_select_field_ok {
+sub form_select_field_matches {
   my ($filename, $field_value_args, $description) = @_;
   my $form_fields = __PACKAGE__->get_form_values({ filename => $filename, form_name => $field_value_args->{form_name} });
   my $tb = $CLASS->builder;
@@ -270,7 +272,7 @@ sub form_select_field_ok {
   my $field_name = $field_value_args->{field_name};
   my $select_elem = $form_fields->{$field_name};
   unless (UNIVERSAL::can($select_elem,'descendants')) {
-    die "$select_elem (",$select_elem->tag,") is not a select html element for field : $field_name - did you mean to call form_checkbox_field_ok ?";
+    die "$select_elem (",$select_elem->tag,") is not a select html element for field : $field_name - did you mean to call form_checkbox_field_matches ?";
   }
   my $selected_option;
   foreach my $option ( $select_elem->descendants ) {
@@ -288,15 +290,15 @@ sub form_select_field_ok {
   return $ok;
 }
 
-=head2 form_checkbox_field_ok
+=head2 form_checkbox_field_matches
 
-form_checkbox_field_ok($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
+form_checkbox_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
 selected field value can be string or quoted regexp
 
 =cut
 
-sub form_checkbox_field_ok {
+sub form_checkbox_field_matches {
   my ($filename, $field_value_args, $description) = @_;
   my $form_fields = __PACKAGE__->get_form_values({ filename => $filename, form_name => $field_value_args->{form_name} });
   my $tb = $CLASS->builder;
@@ -454,9 +456,13 @@ sub _count_text {
 sub _get_tree {
   my $filename = shift;
   unless ($parsed_files{$filename}) {
-    die "can't find file $filename" unless (-f $filename);
-    my $tree = HTML::TreeBuilder->new;
-    $tree->parse_file($filename);
+      my $tree = HTML::TreeBuilder->new;      
+      if (ref $filename && $filename->can('content')) {
+	  $tree->parse_content($filename->content);
+      } else {
+	  die "can't find file $filename" unless (-f $filename);
+	  $tree->parse_file($filename);
+      }
     $parsed_files{$filename} = $tree;
   }
   return $parsed_files{$filename};
