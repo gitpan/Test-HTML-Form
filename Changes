@@ -1,5 +1,9 @@
 Revision history for Perl extension Test::HTML::Form.
 
+0.03 November 26 2009
+	Improvements to POD
+	Fixed cases where matching multiple form elements of same name
+
 0.02  June 16 2009
         Updated to take http response object as well as filename
         Changed method names to be clearer

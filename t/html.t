@@ -1,7 +1,7 @@
 #!perl
 
 use strict;
-use Test::More tests => 15;
+use Test::More tests => 16;
 
 use Data::Dumper;
 
@@ -47,3 +47,6 @@ my $word = Test::HTML::Form->extract_text({filename => $filename, pattern => 'hu
 
 is($word,'koncerty','extracted word from text matches');
 
+my $form_values = Test::HTML::Form->get_form_values({filename => $filename});
+
+ok ($form_values->{tit1e}[0], 'have a title field extracted ok');

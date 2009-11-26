@@ -1,5 +1,7 @@
 package Test::HTML::Form;
 use strict;
+use warnings;
+no warnings 'redefine';
 
 =head1 NAME
 
@@ -7,52 +9,54 @@ Test::HTML::Form - HTML Testing and Value Extracting
 
 =head1 VERSION
 
-0.02
+0.03
 
 =head1 SYNOPSIS
 
-use Test::HTML::Form;
+  use Test::HTML::Form;
 
-my $filename = 't/form_with_errors.html';
+  my $filename = 't/form_with_errors.html';
 
-# test functions
+  my $response = $ua->request($request)
 
-title_matches($filename,'Foo Bar','title matches');
+  # test functions
 
-no_title($filename,'test site','no english title');
+  title_matches($filename,'Foo Bar','title matches');
 
-tag_matches($filename,
+  no_title($filename,'test site','no english title');
+
+  tag_matches($response,
        'p',
        { class => 'formError',
 	 _content => 'There is an error in this form.' },
        'main error message appears as expected' );
 
-no_tag($filename,
+  no_tag($filename,
        'p',
        { class => 'formError',
 	 _content => 'Error' },
        'no unexpected errors' );
 
 
-text_matches($filename,'koncerty','found text : koncerty'); # check text found in file
+  text_matches($filename,'koncerty','found text : koncerty'); # check text found in file
 
-no_text($filename,'Concert','no text matching : Concert'); # check text found in file
+  no_text($filename,'Concert','no text matching : Concert'); # check text found in file
 
-image_matches($filename,'/images/error.gif','matching image found image in HTML');
+  image_matches($filename,'/images/error.gif','matching image found image in HTML');
 
-link_matches($filename,'/post/foo.html','Found link in HTML');
+  link_matches($filename,'/post/foo.html','Found link in HTML');
 
-form_field_value_matches($res,'category_id', 12345678, undef, 'category_id matches');
+  form_field_value_matches($response,'category_id', 12345678, undef, 'category_id matches');
 
-form_select_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
+  form_select_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
-form_checkbox_field_matches($res,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
+  form_checkbox_field_matches($response,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
-# Data extraction functions
+  # Data extraction functions
 
-my $form_values = Test::HTML::Form->get_form_values({filename => $filename, form_name => 'form1'});
+  my $form_values = Test::HTML::Form->get_form_values({filename => $filename, form_name => 'form1'});
 
-my $posting_id = Test::HTML::Form->extract_text({filename => 'publish.html', pattern => 'Reference :\s(\d+)'});
+  my $posting_id = Test::HTML::Form->extract_text({filename => 'publish.html', pattern => 'Reference :\s(\d+)'});
 
 =head1 DESCRIPTION
 
@@ -86,13 +90,19 @@ my $CLASS = __PACKAGE__;
 my %parsed_files = ();
 my %parsed_file_forms = ();
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 
 =head1 FUNCTIONS
 
 =head2 image_matches
 
+Test that some HTML contains an img tag with a src attribute matching the link provided.
+
 image_matches($filename,$image_source,'matching image found image in HTML');
+
+Passes when at least one instance found, fails if no matches found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
 
 =cut
 
@@ -105,7 +115,13 @@ sub image_matches {
 
 =head2 no_image
 
-no_image($res,$image_source,'no matching image found in HTML');
+Test that some HTML doesn't contain any img tag with a src attribute matching the link provided.
+
+no_image($response,$image_source,'no matching image found in HTML');
+
+Passes when no matches found, fails if any matches found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
 
 =cut
 
@@ -118,7 +134,13 @@ sub no_image {
 
 =head2 link_matches
 
-link_matches($res,$link_destination,'Found link in HTML');
+Test that some HTML contains a href tag with a src attribute matching the link provided.
+
+link_matches($response,$link_destination,'Found link in HTML');
+
+Passes when at least one instance found, fails if no matches found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
 
 =cut
 
@@ -130,7 +152,13 @@ sub link_matches {
 
 =head2 no_link
 
+Test that some HTML does not contain a href tag with a src attribute matching the link provided.
+
 link_matches($filename,$link_destination,'Link not in HTML');
+
+Passes when if no matches found, fails when at least one instance found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
 
 =cut
 
@@ -142,7 +170,13 @@ sub no_link {
 
 =head2 title_matches
 
+Test that some HTML contains a title tag with content matching the pattern/string provided.
+
 title_matches($filename,'Foo bar home page','title matches');
+
+Passes when at least one instance found, fails if no matches found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
 
 =cut
 
@@ -154,34 +188,57 @@ sub title_matches {
 
 =head2 no_title
 
+Test that some HTML does not contain a title tag with content matching the pattern/string provided.
+
+no_title($filename,'Foo bar home page','title matches');
+
+Passes if no matches found, fails when at least one instance found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
+
 =cut
 
 sub no_title {
-  my ($filename,$title,$name) = (@_);
-  local $Test::Builder::Level = 2;
-  return no_tag($filename,'title', sub { shift->as_trimmed_text =~ m/$title/ },$name);
-};
+    my ($filename,$title,$name) = (@_);
+    local $Test::Builder::Level = 2;
+    return no_tag($filename,'title', sub { shift->as_trimmed_text =~ m/$title/ },$name);
+}
+
 
 =head2 tag_matches
 
+Test that some HTML contains a tag with content or attributes matching the pattern/string provided.
+
 tag_matches($filename,'a',{ href => $link },$name); # check matching tag found in file
+
+Passes when at least one instance found, fails if no matches found.
+
+Takes a list of arguments filename/response, tag type, hashref of attributes and strings or quoted-regexps to match, and optional test comment/name
 
 =cut
 
 sub tag_matches {
-  my ($filename,$tag,$attr_ref,$name) = @_;
-  my $count = _tag_count($filename, $tag, $attr_ref);
-  my $tb = $CLASS->builder;
-  my $ok = $tb->ok( $count, $name);
-  unless ($ok) {
-    $tb->diag("Expected at least one tag of type $tag in file $filename matching condition, but got 0\n");
-  }
-  return $ok;
+    my ($filename,$tag,$attr_ref,$name) = @_;
+    my $count = _tag_count($filename, $tag, $attr_ref);
+    my $tb = $CLASS->builder;
+    my $ok = $tb->ok( $count, $name);
+    unless ($ok) {
+	$tb->diag("Expected at least one tag of type $tag in file $filename matching condition, but got 0\n");
+    }
+    return $ok;
 }
+
+
 
 =head2 no_tag
 
-tag_ok($filename,'a',{ href => $link },$name); # check NOT matching tag found in file
+Test that some HTML does not contain a tag with content or attributes matching the pattern/string provided.
+
+no_tag($filename,'a',{ href => $link },$name); # check matching tag NOT found in file
+
+Passes if no matches found, fails when at least one instance found.
+
+Takes a list of arguments filename/response, hashref of attributes and strings or quoted-regexps to match, and optional test comment/name
 
 =cut
 
@@ -198,7 +255,13 @@ sub no_tag {
 
 =head2 text_matches
 
+Test that some HTML contains some content matching the pattern/string provided.
+
 text_matches($filename,$text,$name); # check text found in file
+
+Passes when at least one instance found, fails if no matches found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
 
 =cut
 
@@ -215,7 +278,13 @@ sub text_matches {
 
 =head2 no_text
 
+Test that some HTML does not contain some content matching the pattern/string provided.
+
 no_text($filename,$text,$name);  # check text NOT found in file
+
+Passes if no matches found, fails when at least one instance found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
 
 =cut
 
@@ -233,11 +302,19 @@ sub no_text {
 
 =head2 form_field_value_matches
 
+Test that the HTML contains a form element with the value matching that provided.
+
 form_field_value_matches($filename,$field_name, $field_value, $form_name, $description);
 
-form_field_value_matches($filename,$field_name, qr/some pattern/, $form_name, $description);
+form_field_value_matches($filename,$field_name, qr/some pattern/, undef, 'test for foo in bar form field');
 
-field value argument can be a string (for exact matches) or a quoted regexp (for pattern matches)
+Takes a list of arguments : filename/response, string or quoted-regexp to match, optional form_name, and optional test comment/name
+
+Field value argument can be a string (for exact matches) or a quoted regexp (for pattern matches)
+
+Use form_select_field_matches for select elements.
+
+Use form_checkbox_field_matches for checkbox elements
 
 =cut
 
@@ -246,20 +323,43 @@ sub form_field_value_matches {
   my $form_fields = __PACKAGE__->get_form_values({ filename => $filename, form_name => $form_name });
   my $tb = $CLASS->builder;
 
-  my $elem = $form_fields->{$field_name};
+  my $elems = $form_fields->{$field_name};
 
-  my $ok = $tb->ok( _compare($elem,$field_value) , $description);
+  my $ok = 0;
+  foreach my $elem (@$elems) {
+      my $matches = _compare($elem,$field_value);
+      if ($matches) {
+	  $ok = $tb->ok( $matches  , $description);
+	  last;
+      }
+  }
+
   unless ($ok) {
-    $tb->diag("Expected form to contain field '$field_name' and have value of '$field_value' but not found in file $filename\n");
+      $tb->ok( 0  , $description);
+      $tb->diag("Expected form to contain field '$field_name' and have value of '$field_value' but not found in file $filename\n");
   }
   return $ok;
 };
 
 =head2 form_select_field_matches
 
+Test that the HTML contains a form element with the value matching that provided.
+
 form_select_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
-selected field value can be string or quoted regexp
+Takes a mixed list/ hashref of arguments :
+
+=over 4
+
+=item filename/response,
+
+=item hashref of search attributes, keys are : field_name, selected, form_name (optional)
+
+=item optional test comment/name
+
+=back
+
+Selected field value can be string or quoted regexp
 
 =cut
 
@@ -270,7 +370,8 @@ sub form_select_field_matches {
 
   my $field_value = $field_value_args->{selected};
   my $field_name = $field_value_args->{field_name};
-  my $select_elem = $form_fields->{$field_name};
+
+  my $select_elem = $form_fields->{$field_name}[0];
   unless (UNIVERSAL::can($select_elem,'descendants')) {
     die "$select_elem (",$select_elem->tag,") is not a select html element for field : $field_name - did you mean to call form_checkbox_field_matches ?";
   }
@@ -292,9 +393,23 @@ sub form_select_field_matches {
 
 =head2 form_checkbox_field_matches
 
+Test that the HTML contains a form element with the value matching that provided.
+
 form_checkbox_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
 
-selected field value can be string or quoted regexp
+Takes a mixed list/ hashref of arguments :
+
+=over 4
+
+=item filename/response,
+
+=item hashref of search attributes, keys are : field_name, selected, form_name (optional)
+
+=item optional test comment/name
+
+=back
+
+Selected field value can be string or quoted regexp
 
 =cut
 
@@ -324,9 +439,39 @@ sub form_checkbox_field_matches {
 
 
 
+=head2 tag_matches
+
+Test that some HTML contains a tag with content or attributes matching the pattern/string provided.
+
+tag_matches($filename,'a',{ href => $link },$name); # check matching tag found in file
+
+Passes when at least one instance found, fails if no matches found.
+
+Takes a list of arguments filename/response, hashref of attributes and strings or quoted-regexps to match, and optional test comment/name
+
+=cut
+
+sub tag_matches {
+  my ($filename,$tag,$attr_ref,$name) = @_;
+  my $count = _tag_count($filename, $tag, $attr_ref);
+  my $tb = $CLASS->builder;
+  my $ok = $tb->ok( $count, $name);
+  unless ($ok) {
+    $tb->diag("Expected at least one tag of type $tag in file $filename matching condition, but got 0\n");
+  }
+  return $ok;
+}
+
+
 =head2 get_form_values
 
+Extract form fields and their values from HTML content
+
 my $form_values = Test::HTML::Form->get_form_values({filename => $filename, form_name => 'form1'});
+
+Takes a hashref of arguments : filename (name of file or an HTTP::Response object, required), form_name (optional).
+
+Returns a hashref of form fields, with name as key, and arrayref of XML elements for that field.
 
 =cut
 
@@ -359,7 +504,7 @@ sub get_form_values {
 	  if (lc $node->attr('type')  =~ /(radio|checkbox)/)  {
 	    push (@{$form_fields->{$node->attr('name')}},$node);
 	  } else {
-	    $form_fields->{$node->attr('name')} = $node;
+	    $form_fields->{$node->attr('name')} = [ $node ];
 	  }
 	}
       }
@@ -441,6 +586,7 @@ sub _tag_count {
   return $count || 0;
 }
 
+
 sub _count_text {
   my $args = shift;
   my $tree = _get_tree($args->{filename});
@@ -468,12 +614,16 @@ sub _get_tree {
   return $parsed_files{$filename};
 }
 
+
 =head1 SEE ALSO
 
 =over 4
 
 =item Test::HTML::Content
+
 =item HTML::TreeBuilder
+
+=item Test::HTTP::Response
 
 =back
 
