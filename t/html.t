@@ -1,9 +1,11 @@
 #!perl
 
 use strict;
-use Test::More tests => 16;
+use Test::More tests => 18;
 
 use Data::Dumper;
+
+use lib qw(lib);
 
 use Test::HTML::Form;
 
@@ -18,6 +20,8 @@ tag_matches($filename,
        { class => 'formError',
 	 _content => qr/Omlouváme se, byly nalezeny chyby a Váš inzerát nemohl být odeslán/ },
        'main error message appears as expected' );
+
+tag_matches($filename, [qw/weak strong/], { _content => qr/Titulek/ }, 'tag_matches will match one of several tags ok' );
 
 no_tag($filename,
        'p',
@@ -34,6 +38,7 @@ no_image($filename,'/images/hello_kitty.jpg','no matching image found in HTML');
 
 link_matches($filename,'/foo/select_foo.html?id=12345678','Found link in HTML');
 no_link($filename,'/foo/select_foo.html?id=87654321','Not found wrong link in HTML');
+link_matches($filename,'/css/layout.css','Found css link in HTML');
 
 form_field_value_matches($filename,'tit1e','test event', undef, 'have title');
 

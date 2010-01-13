@@ -1,5 +1,10 @@
 Revision history for Perl extension Test::HTML::Form.
 
+0.04 Jan 13 2009
+	tag_matches handles one or more tags to match
+	link_matches a or link tags
+	removed duplicate tag_matches function (how did that get there?)
+
 0.03 November 26 2009
 	Improvements to POD
 	Fixed cases where matching multiple form elements of same name

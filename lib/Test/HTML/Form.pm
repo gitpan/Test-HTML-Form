@@ -9,7 +9,7 @@ Test::HTML::Form - HTML Testing and Value Extracting
 
 =head1 VERSION
 
-0.03
+0.04
 
 =head1 SYNOPSIS
 
@@ -90,7 +90,7 @@ my $CLASS = __PACKAGE__;
 my %parsed_files = ();
 my %parsed_file_forms = ();
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 
 =head1 FUNCTIONS
 
@@ -147,7 +147,7 @@ Takes a list of arguments filename/response, string or quoted-regexp to match, a
 sub link_matches {
   my ($filename,$link,$name) = (@_);
   local $Test::Builder::Level = 2;
-  return tag_matches($filename,'a',{ href => $link },$name);
+  return tag_matches($filename,['a','link'],{ href => $link },$name);
 };
 
 =head2 no_link
@@ -213,17 +213,39 @@ tag_matches($filename,'a',{ href => $link },$name); # check matching tag found i
 
 Passes when at least one instance found, fails if no matches found.
 
-Takes a list of arguments filename/response, tag type, hashref of attributes and strings or quoted-regexps to match, and optional test comment/name
+Takes a list of arguments 
+
+=over 4
+
+=item filename/response - string of path/name of file, or an HTTP::Response object
+
+=item tag type(s) - string or arrarref of strings naming which tag(s) to match
+
+=item attributes - hashref of attributes and strings or quoted-regexps to match
+
+=item comment - an optional test comment/name
+
+=back
 
 =cut
 
 sub tag_matches {
     my ($filename,$tag,$attr_ref,$name) = @_;
-    my $count = _tag_count($filename, $tag, $attr_ref);
+    my $count = 0;
+
+    if (ref $tag ) {
+	foreach my $this_tag (@$tag) {
+	    $count += _tag_count($filename, $this_tag, $attr_ref);
+	}
+    } else {
+	$count = _tag_count($filename, $tag, $attr_ref);
+    }
+
     my $tb = $CLASS->builder;
     my $ok = $tb->ok( $count, $name);
     unless ($ok) {
-	$tb->diag("Expected at least one tag of type $tag in file $filename matching condition, but got 0\n");
+	my $tagname = ( ref $tag ) ? join (' or ', @$tag) : $tag ;
+	$tb->diag("Expected at least one tag of type '$tagname' in file $filename matching condition, but got 0\n");
     }
     return $ok;
 }
@@ -436,32 +458,6 @@ sub form_checkbox_field_matches {
   }
   return $ok;
 }
-
-
-
-=head2 tag_matches
-
-Test that some HTML contains a tag with content or attributes matching the pattern/string provided.
-
-tag_matches($filename,'a',{ href => $link },$name); # check matching tag found in file
-
-Passes when at least one instance found, fails if no matches found.
-
-Takes a list of arguments filename/response, hashref of attributes and strings or quoted-regexps to match, and optional test comment/name
-
-=cut
-
-sub tag_matches {
-  my ($filename,$tag,$attr_ref,$name) = @_;
-  my $count = _tag_count($filename, $tag, $attr_ref);
-  my $tb = $CLASS->builder;
-  my $ok = $tb->ok( $count, $name);
-  unless ($ok) {
-    $tb->diag("Expected at least one tag of type $tag in file $filename matching condition, but got 0\n");
-  }
-  return $ok;
-}
-
 
 =head2 get_form_values
 
