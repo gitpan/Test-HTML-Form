@@ -1,7 +1,7 @@
 #!perl
 
 use strict;
-use Test::More tests => 18;
+use Test::More tests => 19;
 
 use Data::Dumper;
 
@@ -32,6 +32,10 @@ no_tag($filename,
 
 text_matches($filename,'Kulturní přehled, hudba, koncerty','found text : Kulturní přehled, hudba, koncerty'); # check text found in file
 no_text($filename,'Concert','no text matching : Concert'); # check text found in file
+
+script_matches($filename, qr/function someWidget/, 'found widget in JS');
+
+# script_matches($filename, qr/function foobar/, 'found widget in JS');
 
 image_matches($filename,'/images/error.gif','matching image found image in HTML');
 no_image($filename,'/images/hello_kitty.jpg','no matching image found in HTML');

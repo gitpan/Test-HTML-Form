@@ -9,7 +9,7 @@ Test::HTML::Form - HTML Testing and Value Extracting
 
 =head1 VERSION
 
-0.04
+0.05
 
 =head1 SYNOPSIS
 
@@ -46,6 +46,8 @@ Test::HTML::Form - HTML Testing and Value Extracting
 
   link_matches($filename,'/post/foo.html','Found link in HTML');
 
+  script_matches($response, qr/function someWidget/, 'found widget in JS');
+
   form_field_value_matches($response,'category_id', 12345678, undef, 'category_id matches');
 
   form_select_field_matches($filename,{ field_name => $field_name, selected => $field_value, form_name => $form_name}, $description);
@@ -77,6 +79,7 @@ our @EXPORT = qw(
   image_matches no_image
   tag_matches no_tag
   text_matches no_text
+  script_matches
   title_matches no_title
   form_field_value_matches
   form_select_field_matches
@@ -90,7 +93,7 @@ my $CLASS = __PACKAGE__;
 my %parsed_files = ();
 my %parsed_file_forms = ();
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 =head1 FUNCTIONS
 
@@ -320,6 +323,51 @@ sub no_text {
   }
   return $ok;
 };
+
+
+=head2 script_matches
+
+Test that HTML script element contains text matcging that provided.
+
+  script_matches($response, qr/function someWidget/, 'found widget in JS');
+
+Passes when at least one instance found, fails if no matches found.
+
+Takes a list of arguments filename/response, string or quoted-regexp to match, and optional test comment/name
+
+=cut
+
+sub script_matches {
+  my ($filename,$text_to_match,$name) = @_;
+  my $pattern;
+  if (ref($text_to_match) eq 'Regexp')  {
+      $pattern = $text_to_match;
+  }
+  my $tree = _get_tree($filename);
+
+  my @parse_args = sub {
+	    my $elem = shift;
+	    return 0 unless (ref $elem eq 'HTML::Element' );
+	    my $ok = 0;
+	    (my $text = $elem->as_HTML) =~ s/<(.|\n)*?>//g;
+	    if ($pattern) {
+		my $ok = $text =~ m/$pattern/;
+		return $ok || $text =~ m/$pattern/;
+	    } else {
+		$text eq $text_to_match;
+	    }
+	};
+
+  my $count = $tree->look_down( _tag => 'script', @parse_args );
+
+  my $tb = $CLASS->builder;
+  my $ok = $tb->ok( $count, $name);
+  unless ($ok) {
+      $tb->diag("Expected script tag in file $filename matching $text_to_match, but got 0\n");
+  }
+  return $ok;
+};
+
 
 
 =head2 form_field_value_matches
@@ -572,7 +620,10 @@ sub _tag_count {
 
     @parse_args = %$attr_ref ;
     if ($pattern) {
-      push( @parse_args, sub { return 0 unless (ref $_[0] eq 'HTML::Element' ); return $_[0]->as_trimmed_text =~ m/$pattern/; } );
+      push( @parse_args, sub {
+		return 0 unless (ref $_[0] eq 'HTML::Element' );
+		return  $_[0]->as_trimmed_text =~ m/$pattern/;
+	    } );
     }
   } else {
     @parse_args = $attr_ref ;
@@ -598,9 +649,10 @@ sub _count_text {
 sub _get_tree {
   my $filename = shift;
   unless ($parsed_files{$filename}) {
-      my $tree = HTML::TreeBuilder->new;      
+      my $tree = HTML::TreeBuilder->new; 
+      $tree->store_comments(1);     
       if (ref $filename && $filename->can('content')) {
-	  $tree->parse_content($filename->content);
+	  $tree->parse_content($filename->decoded_content);
       } else {
 	  die "can't find file $filename" unless (-f $filename);
 	  $tree->parse_file($filename);
